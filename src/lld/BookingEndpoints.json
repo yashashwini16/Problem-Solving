@@ -1,0 +1,90 @@
+{
+  "api_version": "v1",
+  "base_path": "/api/v1",
+  "endpoints": [
+    {
+      "route": "/bookings/initiate",
+      "method": "POST",
+      "description": "Initiate a booking for a cab, electric bike, or shuttle. Acquires a temporary seat lock for 5 minutes.",
+      "request_headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer <jwt_token>",
+        "Idempotency-Key": "UUID-for-retry-safety"
+      },
+      "request_payload": {
+        "user_id": "emp_908123",
+        "vehicle_type": "SHUTTLE",
+        "schedule_id": "sch_abc789",
+        "source_lat": 12.9715987,
+        "source_lng": 77.5945627,
+        "destination_lat": 12.9250102,
+        "destination_lng": 77.6789021
+      },
+      "responses": {
+        "201_created": {
+          "status": "SUCCESS",
+          "booking_id": "bk_550e8400-e29b",
+          "seat_number": 4,
+          "lock_expires_at": "2026-08-11T22:15:47Z",
+          "message": "Temporary seat locked for 300 seconds. Complete confirmation to secure your ride."
+        },
+        "409_conflict": {
+          "status": "ERROR",
+          "error_code": "SEAT_UNAVAILABLE",
+          "message": "Double-booking prevention: The selected schedule is fully booked or currently locked."
+        },
+        "400_bad_request": {
+          "status": "ERROR",
+          "error_code": "INVALID_GEOLOCATION",
+          "message": "Provided latitude or longitude coordinate is out of bounds."
+        }
+      }
+    },
+    {
+      "route": "/bookings/confirm",
+      "method": "POST",
+      "description": "Confirms the seat booking. Validates payments/credits and transitions status from INITIATED to CONFIRMED.",
+      "request_headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer <jwt_token>"
+      },
+      "request_payload": {
+        "booking_id": "bk_550e8400-e29b",
+        "payment_reference_id": "pay_tx_90182",
+        "amount_paid": 50.00
+      },
+      "responses": {
+        "200_ok": {
+          "status": "SUCCESS",
+          "booking_id": "bk_550e8400-e29b",
+          "status_code": "CONFIRMED",
+          "ticket_qr_code_data": "https://api.moveinsync.com/v1/tickets/bk_550e8400-e29b/qr",
+          "confirmed_at": "2026-08-11T22:11:22Z"
+        },
+        "410_gone": {
+          "status": "ERROR",
+          "error_code": "LOCK_EXPIRED",
+          "message": "Temporary lock expired. The seat has been returned to the public pool."
+        }
+      }
+    },
+    {
+      "route": "/bookings/cancel",
+      "method": "POST",
+      "description": "Cancel an existing active booking. Releases the seat back to the schedule inventory.",
+      "request_payload": {
+        "booking_id": "bk_550e8400-e29b",
+        "reason": "Plan changed"
+      },
+      "responses": {
+        "200_ok": {
+          "status": "SUCCESS",
+          "booking_id": "bk_550e8400-e29b",
+          "status_code": "CANCELLED",
+          "refund_initiated": true,
+          "refund_amount": 50.00
+        }
+      }
+    }
+  ]
+}
