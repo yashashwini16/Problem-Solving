@@ -1,4 +1,4 @@
-// 15. 3Sum
+// 15. 3Sum problem
 
 class Solution {
     public List<List<Integer>> threeSum(int[] nums) {
